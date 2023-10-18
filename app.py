@@ -9,13 +9,14 @@ import base64
 import io
 
 UPLOAD_FOLDER = tempfile.mkdtemp(dir=os.getcwd())
-OUTPUT_OBJECT = "translation.txt"
+OUTPUT_TRANSLATION_OBJECT = "translation.txt"
+OUTPUT_TRANSCRIPTION_OBJECT = "transcription.txt"
 
 # Define instructions and error messages
 instr = [
     [html.B("1. UPLOAD .MP3: "), "Click on the Drag and Drop box below"],
-    [html.B("2. TRANSLATE: "), "Click 'Translate'. You should see a spinner indicating that the file is being translated."],
-    [html.B("3. DOWNLOAD TRANSLATION: "), "Once the analysis is finished, click on the button 'Download' to get the results as a .txt file."]
+    [html.B("2. ANALYZE: "), "Click 'Analyze'. You should see a spinner indicating that the file is being translated."],
+    [html.B("3. DOWNLOAD: "), "Once the analysis is finished, click on the button 'Download transcription' or 'Download translation' to get the results as a .txt file."]
 ]
 
 # Save the uploaded file
@@ -27,11 +28,20 @@ def save_uploaded_file(contents, filename, folder=UPLOAD_FOLDER):
         f.write(decoded)
     return file_path
 
-def translate_file(file_path):
+
+def translate_transcribe_file(file_path):
     model = whisper.load_model('medium')
-    results = model.transcribe(file_path, language="no", task="translate")
-    with open(OUTPUT_OBJECT, "w", encoding="utf-8") as txt:
-        txt.write(results["text"])  # Make sure 'results' variable is used
+    translation = model.transcribe(file_path, language="no", task="translate")
+    transcription = model.transcribe(file_path, language="no")
+    
+    # Save translation
+    with open(OUTPUT_TRANSLATION_OBJECT, "w", encoding="utf-8") as txt:
+        txt.write(translation["text"])
+
+    # Save transcription
+    with open(OUTPUT_TRANSCRIPTION_OBJECT, "w", encoding="utf-8") as txt:
+        txt.write(transcription["text"])
+
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = 'Whisper User Interface'
@@ -64,8 +74,9 @@ app.layout = html.Div([
         },
         multiple=False
     ),
-    dbc.Button('Translate', id='analyze-button', n_clicks=0, color="primary", className="mr-2"),
-    dbc.Button('Download', id="download-button", n_clicks=0, color="success"),
+    dbc.Button('Analyze', id='analyze-button', n_clicks=0, color="primary", className="mr-2"),
+    dbc.Button('Download Translation', id="download-translation-button", n_clicks=0, color="success"),
+    dbc.Button('Download Transcription', id="download-transcription-button", n_clicks=0, color="success", className="ml-2"),
     dcc.Loading(id="loading", children=[html.Div(id='results-output')], type="cube", fullscreen=True),
     dcc.Download(id="download-txt"),
     html.Div(id='info-msg'),
@@ -117,7 +128,7 @@ def analyze_file(n_clicks, content, filename):
             return "", dbc.Alert("No file uploaded!", color="danger")
         file_path = save_uploaded_file(content, filename)
         if os.path.exists(file_path):
-            translate_file(file_path)
+            translate_transcribe_file(file_path)
             return html.Div("File has been translated successfully!"), ""
         else:
             return "", dbc.Alert(f"File not found at path: {file_path}", color="danger")
@@ -126,14 +137,25 @@ def analyze_file(n_clicks, content, filename):
 @app.callback(
     [Output('download-txt', 'data'),
      Output('alert-message-db', 'children')],
-    [Input('download-button', 'n_clicks')]
+    [Input('download-translation-button', 'n_clicks'),
+     Input('download-transcription-button', 'n_clicks')]
 )
-def dl_txt(n_clicks):
-    if n_clicks > 0:
-        if os.path.exists(OUTPUT_OBJECT):
-            return dcc.send_file(OUTPUT_OBJECT), ""
+def dl_files(translation_clicks, transcription_clicks):
+    ctx = dash.callback_context
+    triggered_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    if triggered_id == 'download-translation-button':
+        if os.path.exists(OUTPUT_TRANSLATION_OBJECT):
+            return dcc.send_file(OUTPUT_TRANSLATION_OBJECT), ""
         else:
             return None, dbc.Alert("Translation file not found!", color="danger")
+
+    elif triggered_id == 'download-transcription-button':
+        if os.path.exists(OUTPUT_TRANSCRIPTION_OBJECT):
+            return dcc.send_file(OUTPUT_TRANSCRIPTION_OBJECT), ""
+        else:
+            return None, dbc.Alert("Transcription file not found!", color="danger")
+
     return None, ""
     
 if __name__ == '__main__':
