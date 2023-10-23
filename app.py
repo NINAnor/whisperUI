@@ -3,7 +3,7 @@ import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, State
 import tempfile
 import os
-import whisper  # Make sure whisper library is imported correctly
+import whisper  
 
 import base64
 import io
@@ -28,19 +28,51 @@ def save_uploaded_file(contents, filename, folder=UPLOAD_FOLDER):
         f.write(decoded)
     return file_path
 
+from typing import Iterator, TextIO
+
+def srt_format_timestamp(seconds: float):
+    assert seconds >= 0, "non-negative timestamp expected"
+    milliseconds = round(seconds * 1000.0)
+
+    hours = milliseconds // 3_600_000
+    milliseconds -= hours * 3_600_000
+
+    minutes = milliseconds // 60_000
+    milliseconds -= minutes * 60_000
+
+    seconds = milliseconds // 1_000
+    milliseconds -= seconds * 1_000
+
+    return (f"{hours}:") + f"{minutes:02d}:{seconds:02d},{milliseconds:03d}"
+
+def write_srt(transcript: Iterator[dict], file: TextIO):
+    count = 0
+    for segment in transcript:
+        count +=1
+        print(
+            f"{count}\n"
+            f"{srt_format_timestamp(segment['start'])} --> {srt_format_timestamp(segment['end'])}\n"
+            f"{segment['text'].replace('-->', '->').strip()}\n",
+            file=file,
+            flush=True,
+        )   
+
 
 def translate_transcribe_file(file_path):
+
     model = whisper.load_model('medium')
     translation = model.transcribe(file_path, language="no", task="translate")
     transcription = model.transcribe(file_path, language="no")
-    
+
     # Save translation
     with open(OUTPUT_TRANSLATION_OBJECT, "w", encoding="utf-8") as txt:
-        txt.write(translation["text"])
+        #txt.write(translation["text"])
+         write_srt(translation["segments"], txt)
 
     # Save transcription
     with open(OUTPUT_TRANSCRIPTION_OBJECT, "w", encoding="utf-8") as txt:
-        txt.write(transcription["text"])
+        #txt.write(transcription["text"])
+        write_srt(transcription["segments"], txt)
 
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -129,7 +161,7 @@ def analyze_file(n_clicks, content, filename):
         file_path = save_uploaded_file(content, filename)
         if os.path.exists(file_path):
             translate_transcribe_file(file_path)
-            return html.Div("File has been translated successfully!"), ""
+            return html.Div("File has been analyzed successfully!"), ""
         else:
             return "", dbc.Alert(f"File not found at path: {file_path}", color="danger")
     return "", ""
