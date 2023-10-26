@@ -9,8 +9,8 @@ import base64
 import io
 
 UPLOAD_FOLDER = tempfile.mkdtemp(dir=os.getcwd())
-OUTPUT_TRANSLATION_OBJECT = "translation.txt"
-OUTPUT_TRANSCRIPTION_OBJECT = "transcription.txt"
+OUTPUT_TRANSLATION_OBJECT = "translation.srt"
+OUTPUT_TRANSCRIPTION_OBJECT = "transcription.srt"
 
 # Define instructions and error messages
 instr = [
