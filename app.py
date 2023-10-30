@@ -16,7 +16,7 @@ OUTPUT_TRANSCRIPTION_OBJECT = "transcription.srt"
 instr = [
     [html.B("1. UPLOAD .MP3: "), "Click on the Drag and Drop box below"],
     [html.B("2. ANALYZE: "), "Click 'Analyze'. You should see a spinner indicating that the file is being translated."],
-    [html.B("3. DOWNLOAD: "), "Once the analysis is finished, click on the button 'Download transcription' or 'Download translation' to get the results as a .txt file."]
+    [html.B("3. DOWNLOAD: "), "Once the analysis is finished, click on the button 'Download transcription' or 'Download translation' to get the results as a .srt file."]
 ]
 
 # Save the uploaded file
