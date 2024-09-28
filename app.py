@@ -1,11 +1,11 @@
+import base64
 import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, State
 import tempfile
 import os
 import whisper  
-
-import base64
+import torch
 import io
 
 UPLOAD_FOLDER = tempfile.mkdtemp(dir=os.getcwd())
@@ -60,7 +60,7 @@ def write_srt(transcript: Iterator[dict], file: TextIO):
 
 def translate_transcribe_file(file_path):
 
-    model = whisper.load_model('medium')
+    model = whisper.load_model('medium', device="cuda" if torch.cuda.is_available() else "cpu")
     translation = model.transcribe(file_path, language="no", task="translate")
     transcription = model.transcribe(file_path, language="no")
 
