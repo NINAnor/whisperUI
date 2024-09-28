@@ -55,7 +55,7 @@ def write_srt(transcript: Iterator[dict], file: TextIO):
             f"{segment['text'].replace('-->', '->').strip()}\n",
             file=file,
             flush=True,
-        )   
+        )
 
 
 def translate_transcribe_file(file_path):

@@ -10,11 +10,17 @@ Create the docker image:
 
 ```
 git clone https://github.com/NINAnor/whisperUI
-docker build -t whisperui -f Dockerfile .
+# For CUDA support:
+docker build --build-arg USE_CUDA=1 -t whisperui:cuda .
+# For CPU-only:
+docker build --build-arg USE_CUDA=0 -t whisperui:cpu .
 ```
 
 Run the application on `localhost`:
 
 ```
-docker run --rm -p 8999:8999 whisperui
+# For CUDA support:
+docker run --rm -p 8999:8999 whisperui:cuda
+# For CPU-only:
+docker run --rm -p 8999:8999 whisperui:cpu
 ```

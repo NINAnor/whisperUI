@@ -26,17 +26,3 @@ COPY ./ .
 
 CMD [ "python3", "app.py" ]
 
-# Examples of building the image:
-# For CUDA support:
-# docker build --build-arg USE_CUDA=1 -t whisper-app:cuda .
-#
-# For CPU-only:
-# docker build --build-arg USE_CUDA=0 -t whisper-app:cpu .
-#
-# To run with GPU support:
-# docker run --gpus all -p 8050:8050 whisper-app:cuda
-#
-# To run CPU-only version:
-# docker run -p 8050:8050 whisper-app:cpu
-
-
