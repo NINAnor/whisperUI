@@ -1,16 +1,14 @@
+import base64
+import os
+import tempfile
+from typing import Iterator, TextIO
+
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html, Input, Output, State
-import tempfile
-import os
 import whisper
-
-import base64
-import io
+from dash import Input, Output, State, dcc, html
 
 UPLOAD_FOLDER = tempfile.mkdtemp(dir=os.getcwd())
-OUTPUT_TRANSLATION_OBJECT = "translation.srt"
-OUTPUT_TRANSCRIPTION_OBJECT = "transcription.srt"
 
 # Define instructions and error messages
 instr = [
@@ -34,9 +32,6 @@ def save_uploaded_file(contents, filename, folder=UPLOAD_FOLDER):
     with open(file_path, "wb") as f:
         f.write(decoded)
     return file_path
-
-
-from typing import Iterator, TextIO
 
 
 def srt_format_timestamp(seconds: float):
@@ -73,15 +68,20 @@ def translate_transcribe_file(file_path):
     translation = model.transcribe(file_path, language="no", task="translate")
     transcription = model.transcribe(file_path, language="no")
 
-    # Save translation
-    with open(OUTPUT_TRANSLATION_OBJECT, "w", encoding="utf-8") as txt:
-        # txt.write(translation["text"])
-        write_srt(translation["segments"], txt)
+    # Create temporary files for translation and transcription
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".srt", delete=False, encoding="utf-8"
+    ) as translation_file:
+        write_srt(translation["segments"], translation_file)
+        translation_path = translation_file.name
 
-    # Save transcription
-    with open(OUTPUT_TRANSCRIPTION_OBJECT, "w", encoding="utf-8") as txt:
-        # txt.write(transcription["text"])
-        write_srt(transcription["segments"], txt)
+    with tempfile.NamedTemporaryFile(
+        mode="w", suffix=".srt", delete=False, encoding="utf-8"
+    ) as transcription_file:
+        write_srt(transcription["segments"], transcription_file)
+        transcription_path = transcription_file.name
+
+    return translation_path, transcription_path
 
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
@@ -183,21 +183,36 @@ def update_upload_box_style(contents):
 
 # Callback Function Modification for File Handling
 @app.callback(
-    [Output("results-output", "children"), Output("info-msg", "children")],
+    [
+        Output("results-output", "children"),
+        Output("info-msg", "children"),
+        Output("results-output", "data-translation-path"),
+        Output("results-output", "data-transcription-path"),
+    ],
     [Input("analyze-button", "n_clicks")],
     [State("folder-upload", "contents"), State("folder-upload", "filename")],
 )
 def analyze_file(n_clicks, content, filename):
     if n_clicks > 0:
         if not filename or not content:
-            return "", dbc.Alert("No file uploaded!", color="danger")
+            return "", dbc.Alert("No file uploaded!", color="danger"), "", ""
         file_path = save_uploaded_file(content, filename)
         if os.path.exists(file_path):
-            translate_transcribe_file(file_path)
-            return html.Div("File has been analyzed successfully!"), ""
+            translation_path, transcription_path = translate_transcribe_file(file_path)
+            return (
+                html.Div("File has been analyzed successfully!"),
+                "",
+                translation_path,
+                transcription_path,
+            )
         else:
-            return "", dbc.Alert(f"File not found at path: {file_path}", color="danger")
-    return "", ""
+            return (
+                "",
+                dbc.Alert(f"File not found at path: {file_path}", color="danger"),
+                "",
+                "",
+            )
+    return "", "", "", ""
 
 
 @app.callback(
@@ -206,20 +221,26 @@ def analyze_file(n_clicks, content, filename):
         Input("download-translation-button", "n_clicks"),
         Input("download-transcription-button", "n_clicks"),
     ],
+    [
+        State("results-output", "data-translation-path"),
+        State("results-output", "data-transcription-path"),
+    ],
 )
-def dl_files(translation_clicks, transcription_clicks):
+def dl_files(
+    translation_clicks, transcription_clicks, translation_path, transcription_path
+):
     ctx = dash.callback_context
     triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if triggered_id == "download-translation-button":
-        if os.path.exists(OUTPUT_TRANSLATION_OBJECT):
-            return dcc.send_file(OUTPUT_TRANSLATION_OBJECT), ""
+        if translation_path and os.path.exists(translation_path):
+            return dcc.send_file(translation_path), ""
         else:
             return None, dbc.Alert("Translation file not found!", color="danger")
 
     elif triggered_id == "download-transcription-button":
-        if os.path.exists(OUTPUT_TRANSCRIPTION_OBJECT):
-            return dcc.send_file(OUTPUT_TRANSCRIPTION_OBJECT), ""
+        if transcription_path and os.path.exists(transcription_path):
+            return dcc.send_file(transcription_path), ""
         else:
             return None, dbc.Alert("Transcription file not found!", color="danger")
 
