@@ -5,6 +5,7 @@ from typing import Iterator, TextIO
 
 import dash
 import dash_bootstrap_components as dbc
+import torch
 import whisper
 from dash import Input, Output, State, dcc, html
 
@@ -64,7 +65,10 @@ def write_srt(transcript: Iterator[dict], file: TextIO):
 
 
 def translate_transcribe_file(file_path):
-    model = whisper.load_model("medium")
+    try:
+        model = whisper.load_model("medium")
+    except torch.OutOfMemoryError:  # fallback
+        model = whisper.load_model("tiny", device="cpu")
     translation = model.transcribe(file_path, language="no", task="translate")
     transcription = model.transcribe(file_path, language="no")
 
