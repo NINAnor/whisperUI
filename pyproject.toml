@@ -1,0 +1,14 @@
+[project]
+name = "whisperui"
+version = "0.1.0"
+description = "AWhisper UI"
+authors = [
+    {name = "Benjamin Cretois", email = "benjamin.cretois@nina.no"},
+    {name = "Francesco Frassinelli", email = "francesco.frassinelli@nina.no"},
+]
+requires-python = ">=3.8"
+dependencies = [
+    "dash==2.14.0",
+    "dash-bootstrap-components>=1.5.0",
+    "openai-whisper>=20250625",
+]
