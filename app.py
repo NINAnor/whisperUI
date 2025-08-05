@@ -1,255 +1,41 @@
-import base64
-import os
+import streamlit as st
 import tempfile
-from typing import Iterator, TextIO
+import os
+import shutil
+from utils.whisper import transcribe_and_translate
 
-import dash
-import dash_bootstrap_components as dbc
-import torch
-import whisper
-from dash import Input, Output, State, dcc, html
+st.set_page_config(layout="centered", page_title="Whisper Translation App")
+st.title("🎧 Whisper-based Translation & Transcription")
 
-UPLOAD_FOLDER = tempfile.mkdtemp(dir=os.getcwd())
+st.markdown("""
+1. **Upload a Norwegian `.mp3` file**
+2. **Click Process**
+3. **Download Translation or Transcription**
+""")
 
-# Define instructions and error messages
-instr = [
-    [html.B("1. UPLOAD .MP3: "), "Click on the Drag and Drop box below"],
-    [
-        html.B("2. ANALYZE: "),
-        "Click 'Analyze'. You should see a spinner indicating that the file is being translated.",
-    ],
-    [
-        html.B("3. DOWNLOAD: "),
-        "Once the analysis is finished, click on the button 'Download transcription' or 'Download translation' to get the results as a .srt file.",
-    ],
-]
+# Create a per-session directory if not already present
+if "session_dir" not in st.session_state:
+    st.session_state["session_dir"] = tempfile.mkdtemp()
 
+uploaded_file = st.file_uploader("Upload MP3 file", type=["mp3"])
 
-# Save the uploaded file
-def save_uploaded_file(contents, filename, folder=UPLOAD_FOLDER):
-    _, content_string = contents.split(",")
-    decoded = base64.b64decode(content_string)
-    file_path = os.path.join(folder, filename)
-    with open(file_path, "wb") as f:
-        f.write(decoded)
-    return file_path
+if uploaded_file:
+    session_dir = st.session_state["session_dir"]
+    audio_path = os.path.join(session_dir, uploaded_file.name)
 
+    # Save uploaded audio to session-specific directory
+    with open(audio_path, "wb") as f:
+        f.write(uploaded_file.read())
+    st.success("File uploaded successfully.")
 
-def srt_format_timestamp(seconds: float):
-    assert seconds >= 0, "non-negative timestamp expected"
-    milliseconds = round(seconds * 1000.0)
+    if st.button("Process"):
+        with st.spinner("Transcribing and translating..."):
+            trans_path, transl_path = transcribe_and_translate(audio_path, output_dir=session_dir)
 
-    hours = milliseconds // 3_600_000
-    milliseconds -= hours * 3_600_000
+        with open(trans_path, "rb") as f:
+            st.download_button("📄 Download Transcription (SRT)", f, file_name="transcription.srt")
 
-    minutes = milliseconds // 60_000
-    milliseconds -= minutes * 60_000
+        with open(transl_path, "rb") as f:
+            st.download_button("🌍 Download Translation (SRT)", f, file_name="translation.srt")
 
-    seconds = milliseconds // 1_000
-    milliseconds -= seconds * 1_000
-
-    return (f"{hours}:") + f"{minutes:02d}:{seconds:02d},{milliseconds:03d}"
-
-
-def write_srt(transcript: Iterator[dict], file: TextIO):
-    count = 0
-    for segment in transcript:
-        count += 1
-        print(
-            f"{count}\n"
-            f"{srt_format_timestamp(segment['start'])} --> {srt_format_timestamp(segment['end'])}\n"
-            f"{segment['text'].replace('-->', '->').strip()}\n",
-            file=file,
-            flush=True,
-        )
-
-
-def translate_transcribe_file(file_path):
-    try:
-        model = whisper.load_model("medium")
-    except torch.OutOfMemoryError:  # fallback
-        model = whisper.load_model("tiny", device="cpu")
-    translation = model.transcribe(file_path, language="no", task="translate")
-    transcription = model.transcribe(file_path, language="no")
-
-    # Create temporary files for translation and transcription
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".srt", delete=False, encoding="utf-8"
-    ) as translation_file:
-        write_srt(translation["segments"], translation_file)
-        translation_path = translation_file.name
-
-    with tempfile.NamedTemporaryFile(
-        mode="w", suffix=".srt", delete=False, encoding="utf-8"
-    ) as transcription_file:
-        write_srt(transcription["segments"], transcription_file)
-        transcription_path = transcription_file.name
-
-    return translation_path, transcription_path
-
-
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-app.title = "Whisper User Interface"
-
-app.layout = html.Div(
-    [
-        html.H1("Whisper Translation Dashboard"),
-        dbc.Alert(
-            [
-                html.Ul(
-                    id="instructions",
-                    children=[
-                        html.P([html.B(instr[i][0]), instr[i][1]])
-                        for i in range(len(instr))
-                    ],
-                    className="list-unstyled mb-0",
-                )
-            ],
-            color="primary",
-            className="mb-4",
-        ),
-        dcc.Upload(
-            id="folder-upload",
-            children=html.Div(["Drag and Drop or ", html.A("Select files")]),
-            style={
-                "width": "100%",
-                "height": "60px",
-                "lineHeight": "60px",
-                "borderWidth": "1px",
-                "borderStyle": "dashed",
-                "borderRadius": "5px",
-                "textAlign": "center",
-                "margin": "10px",
-            },
-            multiple=False,
-        ),
-        dbc.Button(
-            "Analyze",
-            id="analyze-button",
-            n_clicks=0,
-            color="primary",
-            className="mr-2",
-        ),
-        dbc.Button(
-            "Download Translation",
-            id="download-translation-button",
-            n_clicks=0,
-            color="success",
-        ),
-        dbc.Button(
-            "Download Transcription",
-            id="download-transcription-button",
-            n_clicks=0,
-            color="success",
-            className="ml-2",
-        ),
-        dcc.Loading(
-            id="loading",
-            children=[html.Div(id="results-output")],
-            type="cube",
-            fullscreen=True,
-        ),
-        dcc.Download(id="download-txt"),
-        html.Div(id="info-msg"),
-        html.Div(id="alert-message-db"),
-    ]
-)
-
-
-@app.callback(Output("folder-upload", "style"), Input("folder-upload", "contents"))
-def update_upload_box_style(contents):
-    if contents:
-        # If a file is uploaded, change box color to green
-        return {
-            "width": "50%",
-            "height": "60px",
-            "lineHeight": "60px",
-            "borderWidth": "1px",
-            "borderStyle": "dashed",
-            "borderRadius": "5px",
-            "textAlign": "center",
-            "margin": "10px",
-            "backgroundColor": "lightgreen",  # Or any color you prefer
-        }
-    else:
-        # Default style without file
-        return {
-            "width": "50%",
-            "height": "60px",
-            "lineHeight": "60px",
-            "borderWidth": "1px",
-            "borderStyle": "dashed",
-            "borderRadius": "5px",
-            "textAlign": "center",
-            "margin": "10px",
-        }
-
-
-# Callback Function Modification for File Handling
-@app.callback(
-    [
-        Output("results-output", "children"),
-        Output("info-msg", "children"),
-        Output("results-output", "data-translation-path"),
-        Output("results-output", "data-transcription-path"),
-    ],
-    [Input("analyze-button", "n_clicks")],
-    [State("folder-upload", "contents"), State("folder-upload", "filename")],
-)
-def analyze_file(n_clicks, content, filename):
-    if n_clicks > 0:
-        if not filename or not content:
-            return "", dbc.Alert("No file uploaded!", color="danger"), "", ""
-        file_path = save_uploaded_file(content, filename)
-        if os.path.exists(file_path):
-            translation_path, transcription_path = translate_transcribe_file(file_path)
-            return (
-                html.Div("File has been analyzed successfully!"),
-                "",
-                translation_path,
-                transcription_path,
-            )
-        else:
-            return (
-                "",
-                dbc.Alert(f"File not found at path: {file_path}", color="danger"),
-                "",
-                "",
-            )
-    return "", "", "", ""
-
-
-@app.callback(
-    [Output("download-txt", "data"), Output("alert-message-db", "children")],
-    [
-        Input("download-translation-button", "n_clicks"),
-        Input("download-transcription-button", "n_clicks"),
-    ],
-    [
-        State("results-output", "data-translation-path"),
-        State("results-output", "data-transcription-path"),
-    ],
-)
-def dl_files(
-    translation_clicks, transcription_clicks, translation_path, transcription_path
-):
-    ctx = dash.callback_context
-    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
-    if triggered_id == "download-translation-button":
-        if translation_path and os.path.exists(translation_path):
-            return dcc.send_file(translation_path), ""
-        else:
-            return None, dbc.Alert("Translation file not found!", color="danger")
-
-    elif triggered_id == "download-transcription-button":
-        if transcription_path and os.path.exists(transcription_path):
-            return dcc.send_file(transcription_path), ""
-        else:
-            return None, dbc.Alert("Transcription file not found!", color="danger")
-
-    return None, ""
-
-
-if __name__ == "__main__":
-    app.run_server(host="0.0.0.0", port=8999, debug=True)
+        st.success("Done!")
