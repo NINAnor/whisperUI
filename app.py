@@ -5,9 +5,8 @@ from typing import Iterator, TextIO
 
 import dash
 import dash_bootstrap_components as dbc
-import torch
-import whisper
 from dash import Input, Output, State, dcc, html
+from faster_whisper import WhisperModel
 
 UPLOAD_FOLDER = tempfile.mkdtemp(dir=os.getcwd())
 
@@ -65,12 +64,27 @@ def write_srt(transcript: Iterator[dict], file: TextIO):
 
 
 def translate_transcribe_file(file_path):
-    try:
-        model = whisper.load_model("medium")
-    except torch.OutOfMemoryError:  # fallback
-        model = whisper.load_model("tiny", device="cpu")
-    translation = model.transcribe(file_path, language="no", task="translate")
-    transcription = model.transcribe(file_path, language="no")
+    model = WhisperModel("medium")
+
+    # Get translation segments
+    translation_segments, _ = model.transcribe(
+        file_path, language="no", task="translate"
+    )
+    translation = {
+        "segments": [
+            {"start": seg.start, "end": seg.end, "text": seg.text}
+            for seg in translation_segments
+        ]
+    }
+
+    # Get transcription segments
+    transcription_segments, _ = model.transcribe(file_path, language="no")
+    transcription = {
+        "segments": [
+            {"start": seg.start, "end": seg.end, "text": seg.text}
+            for seg in transcription_segments
+        ]
+    }
 
     # Create temporary files for translation and transcription
     with tempfile.NamedTemporaryFile(
