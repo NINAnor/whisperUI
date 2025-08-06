@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.10
 
 # Remove apt auto-clean hook to preserve cache
 RUN rm -f /etc/apt/apt.conf.d/docker-clean
