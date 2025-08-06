@@ -1,13 +1,17 @@
 [project]
 name = "whisperui"
 version = "0.1.0"
-description = "AWhisper UI"
+description = "Whisper UI"
 authors = [
     {name = "Benjamin Cretois", email = "benjamin.cretois@nina.no"},
     {name = "Francesco Frassinelli", email = "francesco.frassinelli@nina.no"},
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "langchain>=0.3.27",
+    "langchain-community>=0.3.27",
+    "openai>=1.99.1",
     "openai-whisper>=20250625",
     "streamlit>=1.47.1",
+    "tiktoken>=0.9.0",
 ]
