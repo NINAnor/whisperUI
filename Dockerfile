@@ -1,18 +1,15 @@
-FROM python:3.10
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS base
 
-# Pre-download Whisper model using ADD
-ARG WHISPER_MODEL_URL=https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt
+FROM base AS model-downloader
+
 ARG WHISPER_MODEL=medium
-RUN mkdir -p /root/.cache/whisper
-ADD ${WHISPER_MODEL_URL} /root/.cache/whisper/${WHISPER_MODEL}.pt
+RUN uv pip install --system faster-whisper
+RUN python -c "from faster_whisper import WhisperModel; model = WhisperModel('${WHISPER_MODEL}', device='cpu')"
 
-# Remove apt auto-clean hook to preserve cache
-RUN rm -f /etc/apt/apt.conf.d/docker-clean
+FROM base
 
-# Install system dependencies with cache mount
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
-    apt update && apt install -y --no-install-recommends ffmpeg
+# Copy model cache from first stage
+COPY --from=model-downloader /root/.cache /root/.cache
 
 # Copy uv binary
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
