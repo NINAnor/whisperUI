@@ -14,14 +14,77 @@ UPLOAD_FOLDER = tempfile.mkdtemp(dir=os.getcwd())
 # Define instructions and error messages
 instr = [
     [html.B("1. UPLOAD .MP3: "), "Click on the Drag and Drop box below"],
+    [html.B("2. SELECT LANGUAGE: "), "Choose the source language of your audio file"],
     [
-        html.B("2. ANALYZE: "),
+        html.B("3. ANALYZE: "),
         "Click 'Analyze'. You should see a spinner indicating that the file is being translated.",
     ],
     [
-        html.B("3. DOWNLOAD: "),
+        html.B("4. DOWNLOAD: "),
         "Once the analysis is finished, click on the button 'Download transcription' or 'Download translation' to get the results as a .srt file.",
     ],
+]
+
+# Common languages supported by Whisper
+SUPPORTED_LANGUAGES = [
+    {"label": "Auto-detect", "value": None},
+    {"label": "Afrikaans", "value": "af"},
+    {"label": "Arabic", "value": "ar"},
+    {"label": "Armenian", "value": "hy"},
+    {"label": "Azerbaijani", "value": "az"},
+    {"label": "Belarusian", "value": "be"},
+    {"label": "Bosnian", "value": "bs"},
+    {"label": "Bulgarian", "value": "bg"},
+    {"label": "Catalan", "value": "ca"},
+    {"label": "Chinese", "value": "zh"},
+    {"label": "Croatian", "value": "hr"},
+    {"label": "Czech", "value": "cs"},
+    {"label": "Danish", "value": "da"},
+    {"label": "Dutch", "value": "nl"},
+    {"label": "English", "value": "en"},
+    {"label": "Estonian", "value": "et"},
+    {"label": "Finnish", "value": "fi"},
+    {"label": "French", "value": "fr"},
+    {"label": "Galician", "value": "gl"},
+    {"label": "German", "value": "de"},
+    {"label": "Greek", "value": "el"},
+    {"label": "Hebrew", "value": "he"},
+    {"label": "Hindi", "value": "hi"},
+    {"label": "Hungarian", "value": "hu"},
+    {"label": "Icelandic", "value": "is"},
+    {"label": "Indonesian", "value": "id"},
+    {"label": "Italian", "value": "it"},
+    {"label": "Japanese", "value": "ja"},
+    {"label": "Kannada", "value": "kn"},
+    {"label": "Kazakh", "value": "kk"},
+    {"label": "Korean", "value": "ko"},
+    {"label": "Latvian", "value": "lv"},
+    {"label": "Lithuanian", "value": "lt"},
+    {"label": "Macedonian", "value": "mk"},
+    {"label": "Malay", "value": "ms"},
+    {"label": "Marathi", "value": "mr"},
+    {"label": "Maori", "value": "mi"},
+    {"label": "Nepali", "value": "ne"},
+    {"label": "Norwegian", "value": "no"},
+    {"label": "Persian", "value": "fa"},
+    {"label": "Polish", "value": "pl"},
+    {"label": "Portuguese", "value": "pt"},
+    {"label": "Romanian", "value": "ro"},
+    {"label": "Russian", "value": "ru"},
+    {"label": "Serbian", "value": "sr"},
+    {"label": "Slovak", "value": "sk"},
+    {"label": "Slovenian", "value": "sl"},
+    {"label": "Spanish", "value": "es"},
+    {"label": "Swahili", "value": "sw"},
+    {"label": "Swedish", "value": "sv"},
+    {"label": "Tagalog", "value": "tl"},
+    {"label": "Tamil", "value": "ta"},
+    {"label": "Thai", "value": "th"},
+    {"label": "Turkish", "value": "tr"},
+    {"label": "Ukrainian", "value": "uk"},
+    {"label": "Urdu", "value": "ur"},
+    {"label": "Vietnamese", "value": "vi"},
+    {"label": "Welsh", "value": "cy"},
 ]
 
 
@@ -64,13 +127,19 @@ def write_srt(transcript: Iterator[dict], file: TextIO):
         )
 
 
-def translate_transcribe_file(file_path):
+def translate_transcribe_file(file_path, language=None):
     try:
         model = whisper.load_model("medium")
     except torch.OutOfMemoryError:  # fallback
         model = whisper.load_model("tiny", device="cpu")
-    translation = model.transcribe(file_path, language="no", task="translate")
-    transcription = model.transcribe(file_path, language="no")
+    
+    # Use the selected language or let Whisper auto-detect
+    if language:
+        translation = model.transcribe(file_path, language=language, task="translate")
+        transcription = model.transcribe(file_path, language=language)
+    else:
+        translation = model.transcribe(file_path, task="translate")
+        transcription = model.transcribe(file_path)
 
     # Create temporary files for translation and transcription
     with tempfile.NamedTemporaryFile(
@@ -123,6 +192,16 @@ app.layout = html.Div(
             },
             multiple=False,
         ),
+        html.Div([
+            html.Label("Select Language:", className="form-label"),
+            dcc.Dropdown(
+                id="language-dropdown",
+                options=SUPPORTED_LANGUAGES,
+                value="no",  # Default to Norwegian as before
+                placeholder="Choose source language",
+                className="mb-3",
+            ),
+        ], className="mb-3"),
         dbc.Button(
             "Analyze",
             id="analyze-button",
@@ -194,15 +273,15 @@ def update_upload_box_style(contents):
         Output("results-output", "data-transcription-path"),
     ],
     [Input("analyze-button", "n_clicks")],
-    [State("folder-upload", "contents"), State("folder-upload", "filename")],
+    [State("folder-upload", "contents"), State("folder-upload", "filename"), State("language-dropdown", "value")],
 )
-def analyze_file(n_clicks, content, filename):
+def analyze_file(n_clicks, content, filename, selected_language):
     if n_clicks > 0:
         if not filename or not content:
             return "", dbc.Alert("No file uploaded!", color="danger"), "", ""
         file_path = save_uploaded_file(content, filename)
         if os.path.exists(file_path):
-            translation_path, transcription_path = translate_transcribe_file(file_path)
+            translation_path, transcription_path = translate_transcribe_file(file_path, selected_language)
             return (
                 html.Div("File has been analyzed successfully!"),
                 "",
