@@ -33,4 +33,3 @@ COPY . .
 ENV STREAMLIT_SERVER_HEADLESS=true
 EXPOSE 8501/TCP
 CMD ["uv", "run", "streamlit", "run", "app.py"]
-

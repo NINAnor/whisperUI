@@ -1,7 +1,7 @@
-from langchain_community.embeddings import OpenAIEmbeddings
-from langchain_community.vectorstores import FAISS
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
-from langchain_community.chat_models import ChatOpenAI
+from langchain.chat_models import ChatOpenAI
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
 
@@ -15,7 +15,7 @@ def build_qa_chain(transcript: str):
     vectordb = FAISS.from_documents(docs, embeddings)
 
     # Create chat LLM
-    llm = ChatOpenAI(temperature=0)  # GPT-3.5 or GPT-4
+    llm = ChatOpenAI(temperature=0)
 
     # Create chain
     chain = ConversationalRetrievalChain.from_llm(

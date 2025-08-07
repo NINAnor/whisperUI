@@ -12,9 +12,10 @@ st.set_page_config(layout="centered", page_title="Whisper Translation App")
 st.title("🎧 Whisper-based Translation & Transcription")
 
 st.markdown("""
-1. **Upload a Norwegian `.mp3` file**
-2. **Click Process**
-3. **Download Translation or Transcription**
+1. **Upload an `.mp3` file (interview, podcast ...)**
+2. **Choose the language of the .mp3 file (by default, automatically detects)**
+3. **Click Process**
+4. **Download Translation or Transcription**
 """)
 
 # Create session directory
@@ -22,6 +23,10 @@ if "session_dir" not in st.session_state:
     st.session_state["session_dir"] = tempfile.mkdtemp()
 
 uploaded_file = st.file_uploader("Upload MP3 file", type=["mp3"])
+language = st.selectbox(
+    "Select language of the file (or leave 'Auto')",
+    options=["auto", "no", "en", "fr", "de", "es", "it", "fi", "ru", "zh", "ja", "pt", "sv"]
+)
 
 if uploaded_file:
     session_dir = st.session_state["session_dir"]
@@ -36,7 +41,7 @@ if uploaded_file:
     # Show "Process" button only if we haven't processed yet
     if "trans_path" not in st.session_state and st.button("🚀 Process file"):
         with st.spinner("Transcribing and translating..."):
-            trans_path, transl_path = transcribe_and_translate(st.session_state["audio_path"], output_dir=session_dir)
+            trans_path, transl_path, language = transcribe_and_translate(st.session_state["audio_path"], output_dir=session_dir, language=language)
             st.session_state["trans_path"] = trans_path
             st.session_state["transl_path"] = transl_path
         st.success("✅ Processing complete.")
