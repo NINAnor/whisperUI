@@ -1,12 +1,29 @@
 from .srt import write_srt
 import os
-import whisper
+from faster_whisper import WhisperModel
 
 def transcribe_and_translate(file_path, output_dir="."):
-    model = whisper.load_model("medium")
+    model = WhisperModel("medium", device='auto')
 
-    transcription = model.transcribe(file_path, language="no")
-    translation = model.transcribe(file_path, language="no", task="translate")
+    # Get translation segments
+    translation_segments, _ = model.transcribe(
+        file_path, language="no", task="translate"
+    )
+    translation = {
+        "segments": [
+            {"start": seg.start, "end": seg.end, "text": seg.text}
+            for seg in translation_segments
+        ]
+    }
+
+    # Get transcription segments
+    transcription_segments, _ = model.transcribe(file_path, language="no")
+    transcription = {
+        "segments": [
+            {"start": seg.start, "end": seg.end, "text": seg.text}
+            for seg in transcription_segments
+        ]
+    }
 
     trans_path = os.path.join(output_dir, "transcription.srt")
     transl_path = os.path.join(output_dir, "translation.srt")
