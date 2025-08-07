@@ -1,15 +1,19 @@
-import whisper
+from faster_whisper import WhisperModel
 import argparse
 
 
 def translate(file, language=None):
-    model = whisper.load_model("medium")
+    model = WhisperModel("medium")
     if language:
-        results = model.transcribe(file, language=language, task="translate")
+        segments, info = model.transcribe(file, language=language, task="translate")
     else:
-        results = model.transcribe(file, task="translate")
+        segments, info = model.transcribe(file, task="translate")
+    
+    # Extract text from segments
+    full_text = " ".join([seg.text for seg in segments])
+    
     with open("translation.txt", "w", encoding="utf-8") as txt:
-        txt.write(results["text"])
+        txt.write(full_text)
 
 
 if __name__ == "__main__":
