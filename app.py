@@ -23,10 +23,29 @@ if "session_dir" not in st.session_state:
     st.session_state["session_dir"] = tempfile.mkdtemp()
 
 uploaded_file = st.file_uploader("Upload MP3 file", type=["mp3"])
-language = st.selectbox(
-    "Select language of the file (or leave 'Auto')",
-    options=["auto", "no", "en", "fr", "de", "es", "it", "fi", "ru", "zh", "ja", "pt", "sv"]
+
+# Language options with explicit names
+language_options = {
+    "Auto-detect": "auto",
+    "Norwegian: no": "no",
+    "English: en": "en", 
+    "French: fr": "fr",
+    "German: de": "de",
+    "Spanish: es": "es",
+    "Italian: it": "it",
+    "Finnish: fi": "fi",
+    "Russian: ru": "ru",
+    "Chinese: zh": "zh",
+    "Japanese: ja": "ja",
+    "Portuguese: pt": "pt",
+    "Swedish: sv": "sv"
+}
+
+language_display = st.selectbox(
+    "Select language of the file (or leave 'Auto-detect')",
+    options=list(language_options.keys())
 )
+language = language_options[language_display]
 
 if uploaded_file:
     session_dir = st.session_state["session_dir"]
