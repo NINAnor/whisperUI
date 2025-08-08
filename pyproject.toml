@@ -1,5 +1,7 @@
 [dependency-groups]
 dev = [
+  "pre-commit",
+  "deptry"
 ]
 
 [project]

@@ -8,9 +8,8 @@ WhisperUI returns .srt files (i.e. time-stamped translation / transcription).
 Install `uv`: https://docs.astral.sh/uv/getting-started/installation/
 
 ```bash
-uv sync
+uv sync --dev
 uv run pre-commit install # optional
-```
 
 ### Run
 To execute the application run:
@@ -35,19 +34,19 @@ uvx --with copier-template-extensions copier update --trust --defaults
 ### (Optional) pre-commit
 pre-commit is a set of tools that help you ensure code quality. It runs every time you make a commit.
 
-First, install deptry (required by pre-commit hooks):
+First, install dependencies:
 ```bash
-uv tool install deptry
+uv sync --dev
 ```
 
 Then install pre-commit hooks:
 ```bash
-uvx pre-commit install
+uv run pre-commit install
 ```
 
 To run pre-commit on all files:
 ```bash
-uvx pre-commit run --all-files
+uv run pre-commit run --all-files
 ```
 
 ### How to install a package
