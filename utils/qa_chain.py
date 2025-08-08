@@ -1,9 +1,9 @@
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chat_models import ChatOpenAI
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.schema import Document
+from langchain.vectorstores import FAISS
+
 
 def build_qa_chain(transcript: str):
     # Split the text
@@ -19,8 +19,6 @@ def build_qa_chain(transcript: str):
 
     # Create chain
     chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=vectordb.as_retriever(),
-        return_source_documents=False
+        llm=llm, retriever=vectordb.as_retriever(), return_source_documents=False
     )
     return chain

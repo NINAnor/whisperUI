@@ -1,0 +1,15 @@
+# Changes here will be overwritten by Copier
+_commit: v0.2.0
+_src_path: gh:ninanor/python-template
+author_name: Benjamin Cretois
+debug: false
+default_branch_name: main
+docker: true
+email: benjamin.cretois@nina.no
+notebook: false
+project_name: Whisper UI
+project_slug: whisperui
+repo_name: whisperUI
+repo_org: ninanor
+template_type: python
+type_annotations: false

@@ -1,13 +1,17 @@
-version: '3.8'
-
 services:
-  whisperui:
-    build: .
-    #image: ghcr.io/ninanor/whisperui:latest
+  app:
+    build:
+      context: .
+    command: uv run streamlit run app.py
     ports:
       - "8501:8501"
-    environment:
-      - STREAMLIT_SERVER_HEADLESS=true
-      - STREAMLIT_SERVER_PORT=8501
-      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
-    restart: unless-stopped
+    develop:
+      watch:
+        # Sync the working directory with the `/app` directory in the container
+        - action: sync
+          path: .
+          target: /app
+          ignore:
+            - .venv/
+        - action: rebuild
+          path: ./pyproject.toml
