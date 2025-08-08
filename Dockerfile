@@ -1,18 +1,21 @@
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS base
+# Use latest CUDA runtime image
+FROM nvidia/cuda:12.0.0-cudnn8-runtime-ubuntu22.04
 
-FROM base AS model-downloader
+# Install Python and system dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    python3.10-venv \
+    python3-pip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copy uv binary from official uv image
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+# Pre-download the Whisper model
 ARG WHISPER_MODEL=medium
 RUN uv pip install --system faster-whisper
-RUN python -c "from faster_whisper import WhisperModel; model = WhisperModel('${WHISPER_MODEL}', device='cpu')"
-
-FROM base
-
-# Copy model cache from first stage
-COPY --from=model-downloader /root/.cache /root/.cache
-
-# Copy uv binary
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+RUN python3 -c "from faster_whisper import WhisperModel; model = WhisperModel('${WHISPER_MODEL}')"
 
 WORKDIR /app
 
@@ -27,4 +30,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Copy application code
 COPY . .
 
-CMD ["uv", "run", "python", "app.py"]
+ENV STREAMLIT_SERVER_HEADLESS=true
+EXPOSE 8501/TCP
+CMD ["uv", "run", "streamlit", "run", "app.py"]
