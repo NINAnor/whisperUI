@@ -21,11 +21,33 @@ uv run streamlit run app.py
 ### Development
 Just run `uv run streamlit run app.py` and you are good to go!
 
+### Update from template
+To update your project with the latest changes from the template, run:
+```bash
+uvx --with copier-template-extensions copier update --trust
+```
+
+You can keep your previous answers by using:
+```bash
+uvx --with copier-template-extensions copier update --trust --defaults
+```
+
 ### (Optional) pre-commit
 pre-commit is a set of tools that help you ensure code quality. It runs every time you make a commit.
-To install pre-commit hooks run:
+
+First, install deptry (required by pre-commit hooks):
 ```bash
-uv run pre-commit install
+uv tool install deptry
+```
+
+Then install pre-commit hooks:
+```bash
+uvx pre-commit install
+```
+
+To run pre-commit on all files:
+```bash
+uvx pre-commit run --all-files
 ```
 
 ### How to install a package
