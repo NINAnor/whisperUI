@@ -11,4 +11,3 @@ services:
           devices:
             - capabilities: [gpu]
               count: 1
-
