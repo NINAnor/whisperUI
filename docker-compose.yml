@@ -1,17 +1,13 @@
+version: '3.8'
+
 services:
-  app:
-    build:
-      context: .
-    command: uv run streamlit run app.py
+  whisperui:
+    build: .
     ports:
-      - "8501:8501"
-    develop:
-      watch:
-        # Sync the working directory with the `/app` directory in the container
-        - action: sync
-          path: .
-          target: /app
-          ignore:
-            - .venv/
-        - action: rebuild
-          path: ./pyproject.toml
+      - "8502:8501"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+              count: 1

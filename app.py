@@ -1,13 +1,9 @@
-import os
 import tempfile
 from pathlib import Path
 
 import streamlit as st
 
-from utils.qa_chain import build_qa_chain
 from utils.whisper import transcribe_and_translate
-
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(layout="centered", page_title="Whisper Translation App")
 st.title("🎧 Whisper-based Translation & Transcription")
@@ -81,30 +77,3 @@ if "trans_path" in st.session_state and "transl_path" in st.session_state:
         st.download_button(
             "🌍 Download Translation (SRT)", f, file_name="translation.srt"
         )
-
-# Chatbot section
-if st.checkbox("💬 Chat with the Transcription"):
-    if "trans_path" not in st.session_state:
-        st.error("❌ Please process a file first before chatting.")
-    else:
-        with Path(st.session_state["trans_path"]).open(encoding="utf-8") as f:
-            transcript_text = f.read()
-
-        if "chat_history" not in st.session_state:
-            st.session_state.chat_history = []
-
-        if "qa_chain" not in st.session_state:
-            with st.spinner("Initializing chatbot..."):
-                st.session_state.qa_chain = build_qa_chain(transcript_text)
-
-        user_input = st.text_input("Ask a question about the transcription")
-
-        if user_input:
-            result = st.session_state.qa_chain(
-                {"question": user_input, "chat_history": st.session_state.chat_history}
-            )
-            st.session_state.chat_history.append((user_input, result["answer"]))
-
-        for q, a in st.session_state.chat_history:
-            st.markdown(f"**You:** {q}")
-            st.markdown(f"**Bot:** {a}")
