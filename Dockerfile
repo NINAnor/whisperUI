@@ -1,5 +1,4 @@
-# Use latest CUDA runtime image
-FROM nvidia/cuda:12.0.0-cudnn8-runtime-ubuntu22.04
+FROM ghcr.io/astral-sh/uv:python3.10-bookworm
 
 # Copy uv binary from official uv image
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
