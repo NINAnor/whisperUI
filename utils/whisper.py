@@ -13,7 +13,7 @@ def transcribe_and_translate(file_path, output_dir=".", language="auto"):
         _, info = model.transcribe(file_path, language=None, task="transcribe")
         language = info.language
 
-    # Get translation segments
+    # Get translation segments (always translate to English)
     translation_segments, _ = model.transcribe(
         file_path, language=language, task="translate"
     )
@@ -24,8 +24,10 @@ def transcribe_and_translate(file_path, output_dir=".", language="auto"):
         ]
     }
 
-    # Get transcription segments
-    transcription_segments, _ = model.transcribe(file_path, language="no")
+    # Get transcription segments (in original language)
+    transcription_segments, _ = model.transcribe(
+        file_path, language=language, task="transcribe"
+    )
     transcription = {
         "segments": [
             {"start": seg.start, "end": seg.end, "text": seg.text}
