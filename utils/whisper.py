@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from faster_whisper import WhisperModel
@@ -6,7 +7,11 @@ from .srt import write_srt
 
 
 def transcribe_and_translate(file_path, output_dir=".", language="auto"):
-    model = WhisperModel("medium", device="auto")
+    model = WhisperModel(
+        "medium",
+        device=os.getenv("WHISPER_DEVICE", "auto"),
+        cpu_threads=int(os.getenv("WHISPER_CPU_THREADS", "0")),
+    )
 
     # Auto-detect language if not specified
     if language == "auto":

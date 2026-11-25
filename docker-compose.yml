@@ -1,10 +1,21 @@
 version: '3.8'
 
+x-whisperui: &whisperui
+  build: .
+  ports:
+    - "8502:8501"
+  environment:
+    WHISPER_DEVICE: ${WHISPER_DEVICE:-auto}
+    WHISPER_CPU_THREADS: ${WHISPER_CPU_THREADS:-0}
+
 services:
   whisperui:
-    build: .
-    ports:
-      - "8502:8501"
+    <<: *whisperui
+
+  whisperui-gpu:
+    <<: *whisperui
+    profiles:
+      - gpu
     deploy:
       resources:
         reservations:
