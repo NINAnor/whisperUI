@@ -19,7 +19,8 @@ dependencies = [
   "langchain-community>=0.3.27",
   "openai>=1.99.1",
   "streamlit>=1.47.1",
-  "tiktoken>=0.9.0"
+  "tiktoken>=0.9.0",
+  "torch>=2.7.1"
 ]
 description = "Whisper UI"
 license = {text = "GPL-3.0+"}
@@ -38,3 +39,15 @@ fix = true
 [tool.ruff.lint]
 ignore = ["COM812"]
 select = ["E", "W", "I", "F", "UP", "S", "B", "A", "COM", "LOG", "PTH", "Q"]
+[tool.uv]
+
+[[tool.uv.index]]
+explicit = true
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+
+# https://docs.astral.sh/uv/guides/integration/pytorch/
+[tool.uv.sources]
+torch = [
+  {index = "pytorch-cu118", marker = "sys_platform == 'linux' or sys_platform == 'win32'"}
+]
