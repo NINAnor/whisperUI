@@ -78,6 +78,29 @@ Run the application on `localhost`:
 docker run --rm -p 8501:8501 whisperui
 ```
 
+### Docker Compose device and CPU threads
+
+By default, Docker Compose runs without requesting a GPU and `faster-whisper`
+automatically selects an available device. Set these variables in a `.env` file
+to force CPU execution and choose the number of CPU threads:
+
+```env
+WHISPER_DEVICE=cpu
+WHISPER_CPU_THREADS=4
+```
+
+`WHISPER_CPU_THREADS=0` lets the runtime choose the thread count. Start the app
+with `docker compose up --build`.
+
+To run with a GPU, start the opt-in GPU service instead:
+
+```bash
+docker compose --profile gpu up --build whisperui-gpu
+```
+
+Set `WHISPER_DEVICE=cuda` in `.env` to explicitly select CUDA, or leave it as
+`auto` to let the model choose.
+
 ### Tools installed
 - uv
 - pre-commit (optional)
